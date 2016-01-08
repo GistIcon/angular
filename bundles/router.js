@@ -405,7 +405,7 @@ System.register("angular2/src/router/instruction", ["angular2/src/facade/collect
     });
     Object.defineProperty(Instruction.prototype, "specificity", {
       get: function() {
-        var total = 0;
+        var total = '';
         if (lang_1.isPresent(this.component)) {
           total += this.component.specificity;
         }
@@ -555,9 +555,17 @@ System.register("angular2/src/router/instruction", ["angular2/src/facade/collect
   exports.UnresolvedInstruction = UnresolvedInstruction;
   var RedirectInstruction = (function(_super) {
     __extends(RedirectInstruction, _super);
-    function RedirectInstruction(component, child, auxInstruction) {
+    function RedirectInstruction(component, child, auxInstruction, _specificity) {
       _super.call(this, component, child, auxInstruction);
+      this._specificity = _specificity;
     }
+    Object.defineProperty(RedirectInstruction.prototype, "specificity", {
+      get: function() {
+        return this._specificity;
+      },
+      enumerable: true,
+      configurable: true
+    });
     return RedirectInstruction;
   })(ResolvedInstruction);
   exports.RedirectInstruction = RedirectInstruction;
@@ -1356,9 +1364,9 @@ System.register("angular2/src/router/path_recognizer", ["angular2/src/facade/lan
     }
     var segments = splitBySlash(route);
     var results = [];
-    var specificity = 0;
-    if (segments.length > 98) {
-      throw new exceptions_1.BaseException("'" + route + "' has more than the maximum supported number of segments.");
+    var specificity = '';
+    if (segments.length == 0) {
+      specificity += '2';
     }
     var limit = segments.length - 1;
     for (var i = 0; i <= limit; i++) {
@@ -1366,9 +1374,10 @@ System.register("angular2/src/router/path_recognizer", ["angular2/src/facade/lan
           match;
       if (lang_1.isPresent(match = lang_1.RegExpWrapper.firstMatch(paramMatcher, segment))) {
         results.push(new DynamicSegment(match[1]));
-        specificity += (100 - i);
+        specificity += '1';
       } else if (lang_1.isPresent(match = lang_1.RegExpWrapper.firstMatch(wildcardMatcher, segment))) {
         results.push(new StarSegment(match[1]));
+        specificity += '0';
       } else if (segment == '...') {
         if (i < limit) {
           throw new exceptions_1.BaseException("Unexpected \"...\" before the end of the path for \"" + route + "\".");
@@ -1376,13 +1385,13 @@ System.register("angular2/src/router/path_recognizer", ["angular2/src/facade/lan
         results.push(new ContinuationSegment());
       } else {
         results.push(new StaticSegment(segment));
-        specificity += 100 * (100 - i);
+        specificity += '2';
       }
     }
-    var result = collection_1.StringMapWrapper.create();
-    collection_1.StringMapWrapper.set(result, 'segments', results);
-    collection_1.StringMapWrapper.set(result, 'specificity', specificity);
-    return result;
+    return {
+      'segments': results,
+      'specificity': specificity
+    };
   }
   function pathDslHash(segments) {
     return segments.map(function(segment) {
@@ -2284,7 +2293,7 @@ System.register("angular2/src/router/route_registry", ["angular2/src/facade/coll
           }
           if (candidate instanceof route_recognizer_1.RedirectMatch) {
             var instruction = _this.generate(candidate.redirectTo, ancestorInstructions.concat([null]));
-            return new instruction_1.RedirectInstruction(instruction.component, instruction.child, instruction.auxInstruction);
+            return new instruction_1.RedirectInstruction(instruction.component, instruction.child, instruction.auxInstruction, candidate.specificity);
           }
         });
       });
@@ -2490,9 +2499,35 @@ System.register("angular2/src/router/route_registry", ["angular2/src/facade/coll
     }, []);
   }
   function mostSpecific(instructions) {
-    return collection_1.ListWrapper.maximum(instructions, function(instruction) {
-      return instruction.specificity;
+    instructions = instructions.filter(function(instruction) {
+      return lang_1.isPresent(instruction);
     });
+    if (instructions.length == 0) {
+      return null;
+    }
+    if (instructions.length == 1) {
+      return instructions[0];
+    }
+    var first = instructions[0];
+    var rest = instructions.slice(1);
+    return rest.reduce(function(instruction, contender) {
+      if (compareSpecificityStrings(contender.specificity, instruction.specificity) == -1) {
+        return contender;
+      }
+      return instruction;
+    }, first);
+  }
+  function compareSpecificityStrings(a, b) {
+    var l = lang_1.Math.min(a.length, b.length);
+    for (var i = 0; i < l; i += 1) {
+      var ai = lang_1.StringWrapper.charCodeAt(a, i);
+      var bi = lang_1.StringWrapper.charCodeAt(b, i);
+      var difference = bi - ai;
+      if (difference != 0) {
+        return difference;
+      }
+    }
+    return a.length - b.length;
   }
   function assertTerminalComponent(component, path) {
     if (!lang_1.isType(component)) {
