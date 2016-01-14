@@ -1,0 +1,19 @@
+{
+  "name": "angular",
+  "description": "Angular is a development platform for building mobile and desktop web applications. This is the repository for Angular 2, both the JavaScript (JS) and Dart versions.  Angular 2 is currently in Beta.",
+  "scripts": {
+    "postdeploy": "bin/setup"
+  },
+  "env": {
+    "FACEBOOK_APP_ID": {
+      "required": true
+    },
+    "FACEBOOK_SECRET": {
+      "required": true
+    },
+    "PATH": {
+      "required": true
+    }
+  },
+  "addons": []
+}
