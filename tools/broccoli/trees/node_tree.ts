@@ -1,18 +1,19 @@
 'use strict';
 
 import destCopy from '../broccoli-dest-copy';
-import compileWithTypescript, { INTERNAL_TYPINGS_PATH }
-from '../broccoli-typescript';
+import compileWithTypescript, {INTERNAL_TYPINGS_PATH} from '../broccoli-typescript';
 var Funnel = require('broccoli-funnel');
 import mergeTrees from '../broccoli-merge-trees';
 var path = require('path');
 import renderLodashTemplate from '../broccoli-lodash';
 import replace from '../broccoli-replace';
+import generateForTest from '../broccoli-generate-for-test';
 var stew = require('broccoli-stew');
+var writeFile = require('broccoli-file-creator');
 
 var projectRootDir = path.normalize(path.join(__dirname, '..', '..', '..', '..'));
 
-module.exports = function makeNodeTree(projects, destinationPath) {
+module.exports = function makeNodeTree(projects: string[], destinationPath: string) {
   // list of npm packages that this build will create
   var outputPackages = ['angular2', 'benchpress'];
 
@@ -29,12 +30,28 @@ module.exports = function makeNodeTree(projects, destinationPath) {
       'angular2/src/upgrade/**',
       'angular2/upgrade.ts',
       'angular2/platform/testing/**',
+      'angular2/manual_typings/**',
+      'angular2/typings/**',
     ]
   });
 
+  let externalTypings = [
+    'angular2/typings/hammerjs/hammerjs.d.ts',
+    'angular2/typings/node/node.d.ts',
+    'angular2/manual_typings/globals.d.ts',
+    'angular2/typings/es6-collections/es6-collections.d.ts',
+    'angular2/typings/es6-promise/es6-promise.d.ts',
+  ];
+
+  let externalTypingsTree = new Funnel('modules', {files: externalTypings});
+
+  let packageTypings =
+      new Funnel('node_modules', {include: ['rxjs/**/*.d.ts', 'zone.js/**/*.d.ts']});
+
+  let compileSrcContext = mergeTrees([srcTree, externalTypingsTree, packageTypings]);
+
   // Compile the sources and generate the @internal .d.ts
-  let compiledSrcTreeWithInternals =
-      compileTree(srcTree, true, ['angular2/manual_typings/globals.d.ts']);
+  let compiledSrcTreeWithInternals = compileTree(compileSrcContext, true, []);
 
   var testTree = new Funnel('modules', {
     include: [
@@ -58,13 +75,15 @@ module.exports = function makeNodeTree(projects, destinationPath) {
       'angular2/test/animate/**',
       'angular2/test/core/zone/**',
       'angular2/test/testing/fake_async_spec.ts',
-      'angular2/test/testing/testing_public_spec.ts',
+      'angular2/test/testing/testing_public_browser_spec.ts',
       'angular2/test/platform/xhr_impl_spec.ts',
       'angular2/test/platform/browser/**/*.ts',
       'angular2/test/common/forms/**',
+      'angular2/manual_typings/**',
+      'angular2/typings/**',
 
       // we call browser's bootstrap
-      'angular2/test/router/route_config_spec.ts',
+      'angular2/test/router/route_config/route_config_spec.ts',
       'angular2/test/router/integration/bootstrap_spec.ts',
 
       // we check the public api by importing angular2/angular2
@@ -75,7 +94,7 @@ module.exports = function makeNodeTree(projects, destinationPath) {
 
       'angular2/test/upgrade/**/*.ts',
       'angular1_router/**',
-      'payload_tests/**'
+      'payload_tests/**',
     ]
   });
 
@@ -83,19 +102,58 @@ module.exports = function makeNodeTree(projects, destinationPath) {
   let srcPrivateDeclarations =
       new Funnel(compiledSrcTreeWithInternals, {srcDir: INTERNAL_TYPINGS_PATH});
 
-  testTree = mergeTrees([testTree, srcPrivateDeclarations]);
-
-  let compiledTestTree = compileTree(testTree, false, [
+  let testAmbients = [
     'angular2/typings/jasmine/jasmine.d.ts',
     'angular2/typings/angular-protractor/angular-protractor.d.ts',
-    'angular2/manual_typings/globals.d.ts'
-  ]);
+    'angular2/typings/selenium-webdriver/selenium-webdriver.d.ts'
+  ];
+  let testAmbientsTree = new Funnel('modules', {files: testAmbients});
+
+  testTree = mergeTrees(
+      [testTree, srcPrivateDeclarations, testAmbientsTree, externalTypingsTree, packageTypings]);
+
+  let compiledTestTree = compileTree(testTree, false, []);
 
   // Merge the compiled sources and tests
   let compiledSrcTree =
       new Funnel(compiledSrcTreeWithInternals, {exclude: [`${INTERNAL_TYPINGS_PATH}/**`]});
 
   let compiledTree = mergeTrees([compiledSrcTree, compiledTestTree]);
+
+  // Generate test files
+  let generatedJsTestFiles =
+      generateForTest(compiledTree, {files: ['*/test/**/*_codegen_untyped.js']});
+  let generatedTsTestFiles = stew.rename(
+      generateForTest(compiledTree, {files: ['*/test/**/*_codegen_typed.js']}), /.js$/, '.ts');
+
+  // Compile generated test files against the src @internal .d.ts and the test files
+  compiledTree = mergeTrees(
+      [
+        compiledTree, generatedJsTestFiles,
+        compileTree(
+            new Funnel(
+                mergeTrees([
+                  packageTypings,
+                  new Funnel(
+                      'modules', {include: ['angular2/manual_typings/**', 'angular2/typings/**']}),
+                  generatedTsTestFiles, srcPrivateDeclarations, compiledTestTree
+                ]),
+                {include: ['angular2/**', 'rxjs/**', 'zone.js/**']}),
+            false, [])
+      ],
+      {overwrite: true});
+
+  // Down-level .d.ts files to be TS 1.8 compatible
+  // TODO(alexeagle): this can be removed once we drop support for using Angular 2 with TS 1.8
+  compiledTree = replace(compiledTree, {
+    files: ['**/*.d.ts'],
+    patterns: [
+      // all readonly keywords
+      {match: /^(\s*(static\s+|private\s+)*)readonly\s+/mg, replacement: '$1'},
+      // abstract properties (but not methods or classes)
+      {match: /^(\s+)abstract\s+([^\(\n]*$)/mg, replacement: '$1$2'},
+    ]
+  });
 
   // Now we add the LICENSE file into all the folders that will become npm packages
   outputPackages.forEach(function(destDir) {
@@ -112,9 +170,19 @@ module.exports = function makeNodeTree(projects, destinationPath) {
   var srcPkgJsons = extractPkgJsons(srcTree, BASE_PACKAGE_JSON);
   var testPkgJsons = extractPkgJsons(testTree, BASE_PACKAGE_JSON);
 
-  var typingsTree = new Funnel(
-      'modules',
-      {include: ['angular2/typings/**/*.d.ts', 'angular2/manual_typings/*.d.ts'], destDir: '/'});
+  // Copy es6 typings so quickstart doesn't require typings install
+  let typingsTree = mergeTrees([
+    new Funnel('modules', {
+      include: [
+        'angular2/typings/es6-collections/es6-collections.d.ts',
+        'angular2/typings/es6-promise/es6-promise.d.ts',
+      ]
+    }),
+    writeFile(
+        'angular2/typings/browser.d.ts', '// Typings needed for compilation with --target=es5\n' +
+            '///<reference path="./es6-collections/es6-collections.d.ts"/>\n' +
+            '///<reference path="./es6-promise/es6-promise.d.ts"/>\n')
+  ]);
 
   var nodeTree =
       mergeTrees([compiledTree, srcDocs, testDocs, srcPkgJsons, testPkgJsons, typingsTree]);
@@ -128,9 +196,9 @@ module.exports = function makeNodeTree(projects, destinationPath) {
         replacement:
             () =>
                 `var parse5Adapter = require('angular2/src/platform/server/parse5_adapter');\r\n` +
-                `parse5Adapter.Parse5DomAdapter.makeCurrent();`
+            `parse5Adapter.Parse5DomAdapter.makeCurrent();`
       },
-      {match: /$/, replacement: (_, relativePath) => "\r\n main(); \r\n"}
+      {match: /$/, replacement: (_: any, relativePath: string) => '\r\n main(); \r\n'}
     ]
   });
 
@@ -139,51 +207,36 @@ module.exports = function makeNodeTree(projects, destinationPath) {
   nodeTree = replace(
       nodeTree, {files: ['**/*.js'], patterns: [{match: /^/, replacement: () => `'use strict';`}]});
 
-  // Add a line to the end of our top-level .d.ts file.
-  // This HACK for transitive typings is a workaround for
-  // https://github.com/Microsoft/TypeScript/issues/5097
-  //
-  // This allows users to get our top-level dependencies like zone.d.ts
-  // to appear when they compile against angular2.
-  //
-  // This carries the risk that the user brings their own copy of that file
-  // (or any other symbols exported here) and they will get a compiler error
-  // because of the duplicate definitions.
-  // TODO(alexeagle): remove this when typescript releases a fix
-  nodeTree = replace(nodeTree, {
-    files: ['angular2/core.d.ts'],
-    patterns: [{match: /$/, replacement: 'import "./manual_typings/globals-es6.d.ts";\r\n'}]
-  });
-
   return destCopy(nodeTree, destinationPath);
 };
 
-function compileTree(tree, genInternalTypings, rootFilePaths: string[] = []) {
+function compileTree(
+    tree: BroccoliTree, genInternalTypings: boolean, rootFilePaths: string[] = []) {
   return compileWithTypescript(tree, {
     // build pipeline options
-    "rootFilePaths": rootFilePaths,
-    "internalTypings": genInternalTypings,
+    'rootFilePaths': rootFilePaths,
+    'internalTypings': genInternalTypings,
     // tsc options
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "declaration": true,
-    "stripInternal": true,
-    "module": "commonjs",
-    "moduleResolution": "classic",
-    "noEmitOnError": true,
-    "rootDir": ".",
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "target": "es5"
+    'emitDecoratorMetadata': true,
+    'experimentalDecorators': true,
+    'declaration': true,
+    'stripInternal': true,
+    'module': 'commonjs',
+    'moduleResolution': 'classic',
+    'noEmitOnError': true,
+    'rootDir': '.',
+    'inlineSourceMap': true,
+    'inlineSources': true,
+    'target': 'es5'
   });
 }
 
-function extractDocs(tree) {
+function extractDocs(tree: BroccoliTree) {
   var docs = new Funnel(tree, {include: ['**/*.md', '**/*.png'], exclude: ['**/*.dart.md']});
   return stew.rename(docs, 'README.js.md', 'README.md');
 }
 
-function extractPkgJsons(tree, BASE_PACKAGE_JSON) {
+function extractPkgJsons(tree: BroccoliTree, BASE_PACKAGE_JSON: any) {
   // Generate shared package.json info
   var COMMON_PACKAGE_JSON = {
     version: BASE_PACKAGE_JSON.version,

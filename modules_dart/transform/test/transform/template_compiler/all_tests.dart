@@ -8,12 +8,15 @@ import 'package:dart_style/dart_style.dart';
 import 'package:path/path.dart' as path;
 import 'package:guinness/guinness.dart';
 
-import 'package:angular2/src/core/change_detection/codegen_name_util.dart'
-    show CONTEXT_ACCESSOR;
 import 'package:angular2/src/platform/server/html_adapter.dart';
-import 'package:angular2/src/transform/template_compiler/generator.dart';
+import 'package:angular2/src/transform/common/code/ng_deps_code.dart';
+import 'package:angular2/src/transform/common/code/source_module.dart';
 import 'package:angular2/src/transform/common/zone.dart' as zone;
+import 'package:angular2/src/transform/template_compiler/generator.dart';
+import 'package:angular2/src/transform/template_compiler/compile_data_creator.dart';
+import 'package:angular2/i18n.dart';
 
+import 'package:angular2/src/transform/common/model/parameter_model.pb.dart';
 import '../common/compile_directive_metadata/ng_for.ng_meta.dart' as ngMeta;
 import '../common/ng_meta_helper.dart';
 import '../common/read_file.dart';
@@ -22,6 +25,7 @@ import '../common/recording_logger.dart';
 var formatter = new DartFormatter();
 TestAssetReader reader;
 RecordingLogger logger;
+const CONTEXT_ACCESSOR = 'context';
 
 main() => allTests();
 
@@ -52,25 +56,32 @@ void allTests() {
     // lacking some details that would be created by DirectiveProcessor but
     // which are not used in the template compiler.
     fooComponentMeta = createFoo(moduleBase);
-    fooNgMeta = new NgMeta(ngDeps: new NgDepsModel()
-      ..libraryUri = 'test.foo'
-      ..reflectables.add(new ReflectionInfoModel()..name = fooComponentMeta.type.name));
-    fooNgMeta.types[fooComponentMeta.type.name] = fooComponentMeta;
+    fooNgMeta = new NgMeta(
+        ngDeps: new NgDepsModel()
+          ..libraryUri = 'test.foo'
+          ..reflectables.add(
+              new ReflectionInfoModel()..name = fooComponentMeta.type.name));
+    fooNgMeta.identifiers[fooComponentMeta.type.name] = fooComponentMeta;
 
     barComponentMeta = createBar(moduleBase);
     barPipeMeta = createBarPipe(moduleBase);
-    barNgMeta = new NgMeta(ngDeps: new NgDepsModel()
-      ..libraryUri = 'test.bar'
-      ..reflectables.add(new ReflectionInfoModel()..name = barPipeMeta.type.name)
-      ..reflectables.add(new ReflectionInfoModel()..name = barComponentMeta.type.name));
-    barNgMeta.types[barComponentMeta.type.name] = barComponentMeta;
-    barNgMeta.types[barPipeMeta.type.name] = barPipeMeta;
+    barNgMeta = new NgMeta(
+        ngDeps: new NgDepsModel()
+          ..libraryUri = 'test.bar'
+          ..reflectables
+              .add(new ReflectionInfoModel()..name = barPipeMeta.type.name)
+          ..reflectables.add(
+              new ReflectionInfoModel()..name = barComponentMeta.type.name));
+    barNgMeta.identifiers[barComponentMeta.type.name] = barComponentMeta;
+    barNgMeta.identifiers[barPipeMeta.type.name] = barPipeMeta;
 
     bazComponentMeta = createBaz(moduleBase);
-    bazNgMeta = new NgMeta(ngDeps: new NgDepsModel()
-      ..libraryUri = 'test.baz'
-      ..reflectables.add(new ReflectionInfoModel()..name = bazComponentMeta.type.name));
-    barNgMeta.types[bazComponentMeta.type.name] = bazComponentMeta;
+    bazNgMeta = new NgMeta(
+        ngDeps: new NgDepsModel()
+          ..libraryUri = 'test.baz'
+          ..reflectables.add(
+              new ReflectionInfoModel()..name = bazComponentMeta.type.name));
+    barNgMeta.identifiers[bazComponentMeta.type.name] = bazComponentMeta;
 
     fooAssetId = new AssetId('a', 'lib/foo.ng_meta.json');
     barAssetId = new AssetId('a', 'lib/bar.ng_meta.json');
@@ -79,56 +90,33 @@ void allTests() {
   });
 
   Future<String> process(AssetId assetId,
-      {List<String> platformDirectives, List<String> platformPipes}) {
+      {List<String> platformDirectives, List<String> platformPipes, Map<String,String> resolvedIdentifiers,
+      XmbDeserializationResult translations}) {
     logger = new RecordingLogger();
     return zone.exec(
         () => processTemplates(reader, assetId,
             platformDirectives: platformDirectives,
-            platformPipes: platformPipes),
+            platformPipes: platformPipes,
+            resolvedIdentifiers: resolvedIdentifiers,
+            translations: translations
+            ),
         log: logger);
   }
 
-  // TODO(tbosch): This is just a temporary test that makes sure that the dart
-  // server and dart browser is in sync.
-  it('should not contain notifyBinding', () async {
-    fooComponentMeta.template = new CompileTemplateMetadata(
-        template: '<li *ngFor="#thing of things"><div>test</div></li>');
-    final viewAnnotation = new AnnotationModel()
-      ..name = 'View'
-      ..isView = true;
-    fooNgMeta.ngDeps.reflectables.first.annotations.add(viewAnnotation);
-    fooNgMeta.ngDeps.reflectables.first.directives
-        .add(new PrefixedType()..name = 'NgFor');
-    fooNgMeta.ngDeps.imports.add(
-        new ImportModel()..uri = 'package:angular2/src/directives/ng_for.dart');
-
-    reader.addAsset(new AssetId('angular2', 'lib/src/directives/ng_for.dart'),
-        JSON.encode(ngMeta.ngFor));
-
-    updateReader();
-
-    final outputs = await process(fooAssetId);
-    // TODO(kegluenq): Does this next line need to be updated as well?
-    expect(outputs.templatesCode).not.toContain('notifyDispatcher');
-  });
-
   it('should parse simple expressions in inline templates.', () async {
     fooComponentMeta.template = new CompileTemplateMetadata(
-        template: '<div [a]="b">{{greeting}}</div>',
+        template: '<div [id]="b">{{greeting}}</div>',
         templateUrl: 'template.html');
     updateReader();
 
     final outputs = await process(fooAssetId);
     final ngDeps = outputs.ngDeps;
     expect(ngDeps).toBeNotNull();
-    expect(ngDeps.imports).toContain(new ImportModel()
-      ..uri = 'foo.template.dart'
-      ..prefix = '_templates');
     expect(ngDeps.reflectables.first.annotations)
         .toContain(new AnnotationModel()
-          ..name = '_templates.hostViewFactory_FooComponent'
+          ..name = 'FooComponentNgFactory'
           ..isConstObject = true);
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toContain('$CONTEXT_ACCESSOR.greeting')
       ..toContain('$CONTEXT_ACCESSOR.b');
   });
@@ -142,22 +130,18 @@ void allTests() {
     final outputs = await process(fooAssetId);
     final ngDeps = outputs.ngDeps;
     expect(ngDeps).toBeNotNull();
-    expect(ngDeps.imports).toContain(new ImportModel()
-      ..uri = 'foo.template.dart'
-      ..prefix = '_templates');
     expect(ngDeps.reflectables.first.annotations)
         .toContain(new AnnotationModel()
-          ..name = '_templates.hostViewFactory_FooComponent'
+          ..name = 'FooComponentNgFactory'
           ..isConstObject = true);
-    expect(outputs.templatesCode)..toContain('$CONTEXT_ACCESSOR.action()');
+    expect(_generatedCode(outputs))..toContain('$CONTEXT_ACCESSOR.action()');
   });
 
   it('should parse `View` directives with a single dependency.', () async {
     fooComponentMeta.template =
         new CompileTemplateMetadata(template: '<${barComponentMeta.selector}>');
     final viewAnnotation = new AnnotationModel()
-      ..name = 'View'
-      ..isView = true;
+      ..name = 'View';
     viewAnnotation.namedParameters.add(new NamedParameter()
       ..name = 'directives'
       ..value = 'const [${barComponentMeta.type.name}]');
@@ -172,17 +156,14 @@ void allTests() {
     final outputs = await process(fooAssetId);
     final ngDeps = outputs.ngDeps;
     expect(ngDeps).toBeNotNull();
-    expect(ngDeps.imports).toContain(new ImportModel()
-      ..uri = 'foo.template.dart'
-      ..prefix = '_templates');
     expect(ngDeps.reflectables.first.annotations)
         .toContain(new AnnotationModel()
-          ..name = '_templates.hostViewFactory_FooComponent'
+          ..name = 'FooComponentNgFactory'
           ..isConstObject = true);
 
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toContain("import 'bar.dart'")
-      ..toContain("import 'bar.template.dart'");
+      ..toContain("import 'bar.ngfactory.dart'");
   });
 
   it('should parse `View` directives with a single prefixed dependency.',
@@ -190,8 +171,7 @@ void allTests() {
     fooComponentMeta.template =
         new CompileTemplateMetadata(template: '<${barComponentMeta.selector}>');
     final componentAnnotation = new AnnotationModel()
-      ..name = 'View'
-      ..isView = true;
+      ..name = 'View';
     fooNgMeta.ngDeps.reflectables.first.annotations.add(componentAnnotation);
     fooNgMeta.ngDeps.reflectables.first.directives.add(new PrefixedType()
       ..name = barComponentMeta.type.name
@@ -206,25 +186,21 @@ void allTests() {
     final outputs = await process(fooAssetId);
     final ngDeps = outputs.ngDeps;
     expect(ngDeps).toBeNotNull();
-    expect(ngDeps.imports).toContain(new ImportModel()
-      ..uri = 'foo.template.dart'
-      ..prefix = '_templates');
     expect(ngDeps.reflectables.first.annotations)
         .toContain(new AnnotationModel()
-          ..name = '_templates.hostViewFactory_FooComponent'
+          ..name = 'FooComponentNgFactory'
           ..isConstObject = true);
 
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toContain("import 'bar.dart'")
-      ..toContain("import 'bar.template.dart'");
+      ..toContain("import 'bar.ngfactory.dart'");
   });
 
   it('should include directives mentioned in directive aliases.', () async {
     fooComponentMeta.template =
         new CompileTemplateMetadata(template: '<${barComponentMeta.selector}>');
     final componentAnnotation = new AnnotationModel()
-      ..name = 'View'
-      ..isView = true;
+      ..name = 'View';
     fooNgMeta.ngDeps.reflectables.first.annotations.add(componentAnnotation);
     fooNgMeta.ngDeps.reflectables.first.directives
         .add(new PrefixedType()..name = 'directiveAlias');
@@ -238,94 +214,26 @@ void allTests() {
     final outputs = await process(fooAssetId);
     final ngDeps = outputs.ngDeps;
     expect(ngDeps).toBeNotNull();
-    expect(ngDeps.imports).toContain(new ImportModel()
-      ..uri = 'foo.template.dart'
-      ..prefix = '_templates');
     expect(ngDeps.reflectables.first.annotations)
         .toContain(new AnnotationModel()
-          ..name = '_templates.hostViewFactory_FooComponent'
+          ..name = 'FooComponentNgFactory'
           ..isConstObject = true);
 
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toContain("import 'bar.dart'")
-      ..toContain("import 'bar.template.dart'");
+      ..toContain("import 'bar.ngfactory.dart'");
   });
 
   it('should create the same output for multiple calls.', () async {
     fooComponentMeta.template = new CompileTemplateMetadata(
-        template: '<div [a]="b">{{greeting}}</div>',
+        template: '<div [id]="b">{{greeting}}</div>',
         templateUrl: 'template.html');
     updateReader();
 
     final firstOutputs = await process(fooAssetId);
     final secondOutputs = await process(fooAssetId);
     expect(firstOutputs.ngDeps).toEqual(secondOutputs.ngDeps);
-    expect(firstOutputs.templatesCode).toEqual(secondOutputs.templatesCode);
-  });
-
-  it('should generate getters for Component#outputs.', () async {
-    fooComponentMeta.template = new CompileTemplateMetadata(
-        template: '<div>{{greeting}}</div>', templateUrl: 'template.html');
-    fooComponentMeta.outputs = {'eventName': 'eventName'};
-    updateReader();
-
-    final outputs = await process(fooAssetId);
-    final ngDeps = outputs.ngDeps;
-    expect(ngDeps.getters).toContain('eventName');
-  });
-
-  it('should generate getters for Directive#outputs.', () async {
-    fooComponentMeta
-      ..template = null
-      ..isComponent = false;
-    fooComponentMeta.outputs = {'eventName': 'eventName'};
-    updateReader();
-
-    final outputs = await process(fooAssetId);
-    final ngDeps = outputs.ngDeps;
-    expect(ngDeps.getters).toContain('eventName');
-  });
-
-  it('should generate setters for Component#inputs.', () async {
-    fooComponentMeta.template = new CompileTemplateMetadata(
-        template: '<div>{{greeting}}</div>', templateUrl: 'template.html');
-    fooComponentMeta.inputs = {'text': 'tool-tip'};
-    updateReader();
-
-    final outputs = await process(fooAssetId);
-    final ngDeps = outputs.ngDeps;
-    expect(ngDeps.setters).toContain('text');
-  });
-
-  it('should generate setters for Directive#inputs.', () async {
-    fooComponentMeta
-      ..template = null
-      ..isComponent = false;
-    fooComponentMeta.inputs = {'text': 'tool-tip'};
-    updateReader();
-
-    final outputs = await process(fooAssetId);
-    final ngDeps = outputs.ngDeps;
-    expect(ngDeps.setters).toContain('text');
-  });
-
-  it(
-      'should generate a single setter for two `Directive`s '
-      'with the same inputs.', () async {
-    fooComponentMeta
-      ..template = null
-      ..isComponent = false;
-    fooComponentMeta.inputs = {'text': 'tool-tip'};
-    barComponentMeta
-      ..template = null
-      ..isComponent = false;
-    barComponentMeta.inputs = {'text': 'tool-tip'};
-    updateReader();
-
-    final outputs = await process(fooAssetId);
-    final ngDeps = outputs.ngDeps;
-    expect(ngDeps.setters).toContain('text');
-    expect(ngDeps.setters.length).toEqual(1);
+    expect(_generatedCode(firstOutputs)).toEqual(_generatedCode(secondOutputs));
   });
 
   it('should gracefully handle null .ng_meta.json files', () async {
@@ -360,8 +268,7 @@ void allTests() {
     fooComponentMeta.template =
         new CompileTemplateMetadata(template: '<bar></bar>');
     final viewAnnotation = new AnnotationModel()
-      ..name = 'View'
-      ..isView = true;
+      ..name = 'View';
 
     barNgMeta.aliases['PLATFORM'] = [barComponentMeta.type.name];
     updateReader();
@@ -370,7 +277,7 @@ void allTests() {
         platformDirectives: ['package:a/bar.dart#PLATFORM']);
     final ngDeps = outputs.ngDeps;
     expect(ngDeps).toBeNotNull();
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toBeNotNull()
       ..toContain(barComponentMeta.template.template);
   });
@@ -379,17 +286,16 @@ void allTests() {
     fooComponentMeta.template =
         new CompileTemplateMetadata(template: '<bar></bar>');
     final viewAnnotation = new AnnotationModel()
-      ..name = 'View'
-      ..isView = true;
+      ..name = 'View';
 
-    barNgMeta.types['PLATFORM'] = barComponentMeta;
+    barNgMeta.identifiers['PLATFORM'] = barComponentMeta;
     updateReader();
 
     final outputs = await process(fooAssetId,
         platformDirectives: ['package:a/bar.dart#PLATFORM']);
     final ngDeps = outputs.ngDeps;
     expect(ngDeps).toBeNotNull();
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toBeNotNull()
       ..toContain(barComponentMeta.template.template);
   });
@@ -427,8 +333,7 @@ void allTests() {
     fooComponentMeta.template =
         new CompileTemplateMetadata(template: '{{1 | bar}}');
     final viewAnnotation = new AnnotationModel()
-      ..name = 'View'
-      ..isView = true;
+      ..name = 'View';
     viewAnnotation.namedParameters.add(new NamedParameter()
       ..name = 'pipes'
       ..value = 'const [${barPipeMeta.type.name}]');
@@ -440,7 +345,7 @@ void allTests() {
 
     final outputs = await process(fooAssetId);
 
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toContain("import 'bar.dart'")
       ..toContain(barPipeMeta.name);
   });
@@ -455,10 +360,34 @@ void allTests() {
     final outputs = await process(fooAssetId,
         platformPipes: ['package:a/bar.dart#PLATFORM']);
 
-    expect(outputs.templatesCode)
+    expect(_generatedCode(outputs))
       ..toContain("import 'bar.dart'")
       ..toContain(barPipeMeta.name);
   });
+
+  it('should use i18n parser when translations are provided.', () async {
+    fooComponentMeta.template = new CompileTemplateMetadata(
+        template: '<div i18n>content</div>',
+        templateUrl: 'template.html');
+    updateReader();
+
+    final translations = deserializeXmb("""
+      <message-bundle>
+        <msg id="${id(new Message("content", null))}">another</msg>
+      </message-bundle>
+    """, "someUrl");
+
+    final outputs = await process(fooAssetId, translations: translations);
+    expect(_generatedCode(outputs)).toContain('another');
+    expect(_generatedCode(outputs)).not.toContain('content');
+  });
+}
+
+String _generatedCode(Outputs outputs) {
+  final StringBuffer buf = new StringBuffer();
+  final writer = new NgDepsWriter(buf);
+  writeTemplateFile(writer, outputs.ngDeps, outputs.templatesSource);
+  return buf.toString();
 }
 
 void _formatThenExpectEquals(String actual, String expected) {

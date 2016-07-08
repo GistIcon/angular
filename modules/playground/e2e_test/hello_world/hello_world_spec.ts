@@ -1,11 +1,19 @@
-import {verifyNoBrowserErrors} from 'angular2/src/testing/e2e_util';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
+import {verifyNoBrowserErrors} from '@angular/platform-browser/testing_e2e';
 
 describe('hello world', function() {
 
   afterEach(verifyNoBrowserErrors);
 
   describe('hello world app', function() {
-    var URL = 'playground/src/hello_world/index.html';
+    var URL = 'all/playground/src/hello_world/index.html';
 
     it('should greet', function() {
       browser.get(URL);
@@ -23,12 +31,12 @@ describe('hello world', function() {
 
 });
 
-function getComponentText(selector, innerSelector) {
+function getComponentText(selector: any /** TODO #9100 */, innerSelector: any /** TODO #9100 */) {
   return browser.executeScript('return document.querySelector("' + selector + '").querySelector("' +
                                innerSelector + '").textContent');
 }
 
-function clickComponentButton(selector, innerSelector) {
+function clickComponentButton(selector: any /** TODO #9100 */, innerSelector: any /** TODO #9100 */) {
   return browser.executeScript('return document.querySelector("' + selector + '").querySelector("' +
                                innerSelector + '").click()');
 }

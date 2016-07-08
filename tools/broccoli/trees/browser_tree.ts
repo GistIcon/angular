@@ -24,6 +24,7 @@ const kServedPaths = [
   'benchmarks/src/element_injector',
   'benchmarks/src/largetable',
   'benchmarks/src/naive_infinite_scroll',
+  'benchmarks/src/page_load',
   'benchmarks/src/tree',
   'benchmarks/src/static_tree',
 
@@ -57,22 +58,17 @@ const kServedPaths = [
   'playground/src/upgrade',
   'playground/src/zippy_component',
   'playground/src/async',
-  'playground/src/material/button',
-  'playground/src/material/checkbox',
-  'playground/src/material/dialog',
-  'playground/src/material/grid_list',
-  'playground/src/material/input',
-  'playground/src/material/progress-linear',
-  'playground/src/material/radio',
-  'playground/src/material/switcher',
   'playground/src/web_workers/kitchen_sink',
   'playground/src/web_workers/todo',
   'playground/src/web_workers/images',
-  'playground/src/web_workers/message_broker'
+  'playground/src/web_workers/message_broker',
+  'playground/src/web_workers/router',
+  'playground/src/web_workers/input',
 ];
 
 
-module.exports = function makeBrowserTree(options, destinationPath) {
+module.exports = function makeBrowserTree(options: any, destinationPath: string) {
+  // TODO: define an interface for the options
   const modules = options.projects;
   const noTypeChecks = options.noTypeChecks;
   const generateEs6 = options.generateEs6;
@@ -90,16 +86,10 @@ module.exports = function makeBrowserTree(options, destinationPath) {
     });
   }
 
-  if (modules.angular2_material) {
-    var angular2MaterialTree =
-        new Funnel('modules/angular2_material',
-                   {include: ['**/**'], exclude: ['e2e_test/**'], destDir: '/angular2_material/'});
-  }
-
   if (modules.benchmarks) {
-    var benchmarksTree =
-        new Funnel('modules/benchmarks',
-                   {include: ['**/**'], exclude: ['e2e_test/**'], destDir: '/benchmarks/'});
+    var benchmarksTree = new Funnel(
+        'modules/benchmarks',
+        {include: ['**/**'], exclude: ['e2e_test/**'], destDir: '/benchmarks/'});
   }
 
   if (modules.benchmarks_external) {
@@ -109,31 +99,35 @@ module.exports = function makeBrowserTree(options, destinationPath) {
   }
 
   if (modules.payload_tests) {
-    var payloadTestsTree =
-        new Funnel('modules/payload_tests',
-                   {include: ['**/ts/**'], exclude: ['e2e_test/**'], destDir: '/payload_tests/'});
+    var payloadTestsTree = new Funnel(
+        'modules/payload_tests',
+        {include: ['**/ts/**'], exclude: ['e2e_test/**'], destDir: '/payload_tests/'});
   }
 
   if (modules.playground) {
-    var playgroundTree =
-        new Funnel('modules/playground',
-                   {include: ['**/**'], exclude: ['e2e_test/**'], destDir: '/playground/'});
+    var playgroundTree = new Funnel(
+        'modules/playground',
+        {include: ['**/**'], exclude: ['e2e_test/**'], destDir: '/playground/'});
   }
 
   if (modules.benchpress) {
-    var benchpressTree =
-        new Funnel('modules/benchpress',
-                   {include: ['**/**'], exclude: ['e2e_test/**'], destDir: '/benchpress/'});
+    var benchpressTree = new Funnel(
+        'modules/benchpress',
+        {include: ['**/**'], exclude: ['e2e_test/**'], destDir: '/benchpress/'});
   }
+
+  let externalTypings =
+      new Funnel('node_modules', {include: ['rxjs/**/*.d.ts', 'zone.js/**/*.d.ts']});
+
 
   var modulesTree = mergeTrees([
     angular2Tree,
-    angular2MaterialTree,
     benchmarksTree,
     benchmarksExternalTree,
     payloadTestsTree,
     playgroundTree,
-    benchpressTree
+    benchpressTree,
+    externalTypings,
   ]);
 
   var es6PolyfillTypings =
@@ -143,7 +137,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
 
   var scriptPathPatternReplacement = {
     match: '@@PATH',
-    replacement: function(replacement, relativePath) {
+    replacement: function(replacement: string, relativePath: string) {
       var parts = relativePath.replace(/\\/g, '/').split('/');
       return parts.splice(0, parts.length - 1).join('/');
     }
@@ -151,7 +145,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
 
   var scriptFilePatternReplacement = {
     match: '@@FILENAME',
-    replacement: function(replacement, relativePath) {
+    replacement: function(replacement: string, relativePath: string) {
       var parts = relativePath.replace(/\\/g, '/').split('/');
       return parts[parts.length - 1].replace('html', 'js');
     }
@@ -159,16 +153,25 @@ module.exports = function makeBrowserTree(options, destinationPath) {
 
   var useBundlesPatternReplacement = {
     match: '@@USE_BUNDLES',
-    replacement: function(replacement, relativePath) { return useBundles; }
+    replacement: function(replacement: string, relativePath: string) { return useBundles; }
   };
 
   // Check that imports do not break barrel boundaries
   modulesTree = checkImports(modulesTree);
 
   modulesTree = replace(modulesTree, {
-    files: ["playground*/**/*.js"],
+    files: ['playground*/**/*.js'],
     patterns: [{match: /\$SCRIPTS\$/, replacement: jsReplace('SCRIPTS')}]
   });
+
+  let ambientTypings = [
+    'angular2/typings/hammerjs/hammerjs.d.ts',
+    'angular2/typings/node/node.d.ts',
+    'node_modules/zone.js/dist/zone.js.d.ts',
+    'angular2/manual_typings/globals.d.ts',
+    'angular2/typings/es6-collections/es6-collections.d.ts',
+    'angular2/typings/es6-promise/es6-promise.d.ts',
+  ];
 
   // Use TypeScript to transpile the *.ts files to ES5
   var es5Tree = compileWithTypescript(es5ModulesTree, {
@@ -179,7 +182,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
     moduleResolution: 'classic',
     noEmitOnError: !noTypeChecks,
     rootDir: './',
-    rootFilePaths: ['angular2/manual_typings/globals.d.ts'],
+    rootFilePaths: ambientTypings,
     inlineSourceMap: sourceMaps,
     inlineSources: sourceMaps,
     target: 'es5'
@@ -188,11 +191,11 @@ module.exports = function makeBrowserTree(options, destinationPath) {
   var vendorScriptsTree = flatten(new Funnel('.', {
     files: [
       'node_modules/es6-shim/es6-shim.js',
-      'node_modules/zone.js/dist/zone-microtask.js',
+      'node_modules/zone.js/dist/zone.js',
       'node_modules/zone.js/dist/long-stack-trace-zone.js',
       'node_modules/systemjs/dist/system.src.js',
       'node_modules/base64-js/lib/b64.js',
-      'node_modules/reflect-metadata/Reflect.js'
+      'node_modules/reflect-metadata/Reflect.js',
     ]
   }));
 
@@ -203,7 +206,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
 
   // Get scripts for each benchmark or example
   let servingTrees = kServedPaths.reduce(getServedFunnels, []);
-  function getServedFunnels(funnels, destDir) {
+  function getServedFunnels(funnels: BroccoliTree[], destDir: string) {
     let options = {srcDir: '/', destDir: destDir};
     funnels.push(new Funnel(vendorScriptsTree, options));
     if (destDir.indexOf('benchmarks') > -1) {
@@ -216,8 +219,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
   }
 
 
-  if (modules.angular2_material || modules.benchmarks || modules.benchmarks_external ||
-      modules.playground) {
+  if (modules.benchmarks || modules.benchmarks_external || modules.playground) {
     var assetsTree = new Funnel(
         modulesTree, {include: ['**/*'], exclude: ['**/*.{html,ts,dart}'], destDir: '/'});
   }
@@ -227,14 +229,12 @@ module.exports = function makeBrowserTree(options, destinationPath) {
     destDir: '/'
   });
 
-  if (modules.benchmarks || modules.benchmarks_external || modules.playground) {
+  if (modules.playground) {
     htmlTree = replace(htmlTree, {
       files: ['playground*/**/*.html'],
       patterns: [
-        {match: /\$SCRIPTS\$/, replacement: htmlReplace('SCRIPTS')},
-        scriptPathPatternReplacement,
-        scriptFilePatternReplacement,
-        useBundlesPatternReplacement
+        {match: /\$SCRIPTS\$/, replacement: htmlReplace('SCRIPTS')}, scriptPathPatternReplacement,
+        scriptFilePatternReplacement, useBundlesPatternReplacement
       ]
     });
   }
@@ -244,9 +244,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
       files: ['benchmarks/**'],
       patterns: [
         {match: /\$SCRIPTS\$/, replacement: htmlReplace('SCRIPTS_benchmarks')},
-        scriptPathPatternReplacement,
-        scriptFilePatternReplacement,
-        useBundlesPatternReplacement
+        scriptPathPatternReplacement, scriptFilePatternReplacement, useBundlesPatternReplacement
       ]
     });
   }
@@ -256,9 +254,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
       files: ['benchmarks_external/**'],
       patterns: [
         {match: /\$SCRIPTS\$/, replacement: htmlReplace('SCRIPTS_benchmarks_external')},
-        scriptPathPatternReplacement,
-        scriptFilePatternReplacement,
-        useBundlesPatternReplacement
+        scriptPathPatternReplacement, scriptFilePatternReplacement, useBundlesPatternReplacement
       ]
     });
   }
@@ -268,7 +264,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
     // for web-worker e2e tests.
     htmlTree = replace(htmlTree, {
       files: ['playground*/**/web_workers/**/*.html'],
-      patterns: [{match: "/bundle/angular2.dev.js", replacement: "/bundle/web_worker/ui.dev.js"}]
+      patterns: [{match: '/bundle/angular2.dev.js', replacement: '/bundle/web_worker/ui.dev.js'}]
     });
   }
 
@@ -282,7 +278,7 @@ module.exports = function makeBrowserTree(options, destinationPath) {
         'bower_components/polymer/polymer.html',
         'bower_components/polymer/polymer-micro.html',
         'bower_components/polymer/polymer-mini.html',
-        'tools/build/snippets/url_params_to_form.js'
+        'tools/build/snippets/url_params_to_form.js',
       ]
     });
     var polymer = stew.mv(flatten(polymerFiles), 'benchmarks_external/src/tree/polymer');
@@ -310,7 +306,11 @@ module.exports = function makeBrowserTree(options, destinationPath) {
       experimentalDecorators: true,
       noEmitOnError: false,
       rootDir: './',
-      rootFilePaths: ['angular2/manual_typings/globals-es6.d.ts'],
+      rootFilePaths: [
+        'angular2/typings/zone.js/zone.js.d.ts',
+        'angular2/typings/hammerjs/hammerjs.d.ts',
+        'angular2/typings/node/node.d.ts',
+      ],
       inlineSourceMap: sourceMaps,
       inlineSources: sourceMaps,
       target: 'es6'

@@ -1,6 +1,16 @@
-import {Component, Input, Output, EventEmitter} from 'angular2/core';
-import {UpgradeAdapter} from 'angular2/upgrade';
-import * as angular from '../../../angular2/src/upgrade/angular_js';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
+import {Component, Input, Output, EventEmitter} from '@angular/core';
+import {UpgradeAdapter} from '@angular/upgrade';
+
+declare var angular: any;
+
 
 var styles = [
   `
@@ -22,7 +32,7 @@ var adapter: UpgradeAdapter = new UpgradeAdapter();
 
 var ng1module = angular.module('myExample', []);
 
-ng1module.controller('Index', function($scope) { $scope.name = 'World'; });
+ng1module.controller('Index', function($scope: any /** TODO #9100 */) { $scope.name = 'World'; });
 
 ng1module.directive('user', function() {
   return {

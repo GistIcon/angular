@@ -9,10 +9,10 @@ import {
   inject,
   it,
   xit,
-} from 'angular2/testing_internal';
+} from '@angular/testing/testing_internal';
 
-import {isBlank, isPresent, stringify, Date, DateWrapper} from 'angular2/src/facade/lang';
-import {PromiseWrapper, Promise} from 'angular2/src/facade/async';
+import {isBlank, isPresent, stringify, Date, DateWrapper} from '@angular/facade';
+import {PromiseWrapper} from '@angular/facade';
 
 import {
   Sampler,
@@ -20,9 +20,7 @@ import {
   Validator,
   Metric,
   Reporter,
-  bind,
-  provide,
-  Injector,
+  ReflectiveInjector,
   Options,
   MeasureValues
 } from 'benchpress/common';
@@ -31,7 +29,7 @@ export function main() {
   var EMPTY_EXECUTE = () => {};
 
   describe('sampler', () => {
-    var sampler;
+    var sampler: Sampler;
 
     function createSampler({driver, metric, reporter, validator, prepare, execute}: {
       driver?: any,
@@ -51,21 +49,21 @@ export function main() {
       if (isBlank(driver)) {
         driver = new MockDriverAdapter([]);
       }
-      var bindings = [
+      var providers = [
         Options.DEFAULT_PROVIDERS,
-        Sampler.BINDINGS,
-        provide(Metric, {useValue: metric}),
-        provide(Reporter, {useValue: reporter}),
-        provide(WebDriverAdapter, {useValue: driver}),
-        bind(Options.EXECUTE).toValue(execute),
-        provide(Validator, {useValue: validator}),
-        bind(Options.NOW).toValue(() => DateWrapper.fromMillis(time++))
+        Sampler.PROVIDERS,
+        {provide: Metric, useValue: metric},
+        {provide: Reporter, useValue: reporter},
+        {provide: WebDriverAdapter, useValue: driver},
+        {provide: Options.EXECUTE, useValue: execute},
+        {provide: Validator, useValue: validator},
+        {provide: Options.NOW, useValue: () => DateWrapper.fromMillis(time++)}
       ];
       if (isPresent(prepare)) {
-        bindings.push(bind(Options.PREPARE).toValue(prepare));
+        providers.push({provide: Options.PREPARE, useValue: prepare});
       }
 
-      sampler = Injector.resolveAndCreate(bindings).get(Sampler);
+      sampler = ReflectiveInjector.resolveAndCreate(providers).get(Sampler);
     }
 
     it('should call the prepare and execute callbacks using WebDriverAdapter.waitFor',

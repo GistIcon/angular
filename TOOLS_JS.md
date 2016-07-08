@@ -14,7 +14,7 @@ Ctrl + Shift + j.
 By default the debug tools are disabled. You can enable debug tools as follows:
 
 ```typescript
-import {enableDebugTools} from 'angular2/platform/browser';
+import {enableDebugTools} from '@angular/platform-browser';
 
 bootstrap(Application).then((appRef) => {
   enableDebugTools(appRef);
@@ -117,7 +117,7 @@ speed things up is to use plain class fields in your expressions and avoid any
 kinds of computation. Example:
 
 ```typescript
-@View({
+@Component({
   template: '<button [enabled]="isEnabled">{{title}}</button>'
 })
 class FancyButton {

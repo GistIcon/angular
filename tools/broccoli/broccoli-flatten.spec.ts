@@ -1,11 +1,3 @@
-/// <reference path="../typings/node/node.d.ts" />
-/// <reference path="../typings/jasmine/jasmine.d.ts" />
-
-console.warn(
-    "Skipping all tests in broccoli-flatten.spec.ts because they require mock-fs which is currently incompatible with node 4.x. See: https://github.com/tschaub/mock-fs/issues/59");
-
-
-/*
 let mockfs = require('mock-fs');
 import fs = require('fs');
 import path = require('path');
@@ -15,11 +7,11 @@ import {DiffingFlatten} from './broccoli-flatten';
 describe('Flatten', () => {
   afterEach(() => mockfs.restore());
 
-  function flatten(inputPaths) { return new DiffingFlatten(inputPaths, 'output', null); }
-
-  function read(path) { return fs.readFileSync(path, {encoding: "utf-8"}); }
-  function rm(path) { return fs.unlinkSync(path); }
-  function write(path, content) { fs.writeFileSync(path, content, {encoding: "utf-8"}); }
+  let flatten = (inputPaths: string) => new DiffingFlatten(inputPaths, 'output', null);
+  let read = (path: string) => fs.readFileSync(path, {encoding: 'utf-8'});
+  let rm = (path: string) => fs.unlinkSync(path);
+  let write =
+      (path: string, content: string) => { fs.writeFileSync(path, content, {encoding: 'utf-8'}); }
 
 
   it('should flatten files and be incremental', () => {
@@ -75,8 +67,8 @@ describe('Flatten', () => {
     let differ = new TreeDiffer('testLabel', 'input');
     let flattenedTree = flatten('input');
     expect(() => flattenedTree.rebuild(differ.diffTree()))
-        .toThrowError("Duplicate file 'file-1.txt' found in path 'dir1" + path.sep + "subdir-1" +
-                      path.sep + "file-1.txt'");
+        .toThrowError(
+            'Duplicate file \'file-1.txt\' found in path \'dir1' + path.sep + 'subdir-1' +
+            path.sep + 'file-1.txt\'');
   });
 });
-*/

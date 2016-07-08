@@ -9,43 +9,44 @@ import {
   inject,
   it,
   xit,
-} from 'angular2/testing_internal';
+} from '@angular/testing/testing_internal';
 import {
   Runner,
   Sampler,
   SampleDescription,
   Validator,
-  bind,
-  provide,
+  ReflectiveInjector,
   Injector,
   Metric,
   Options,
   WebDriverAdapter,
   SampleState
 } from 'benchpress/common';
-import {isBlank} from 'angular2/src/facade/lang';
-import {Promise, PromiseWrapper} from 'angular2/src/facade/async';
+import {isBlank} from '@angular/facade';
+import {PromiseWrapper} from '@angular/facade';
 
 export function main() {
   describe('runner', () => {
-    var injector: Injector;
+    var injector: ReflectiveInjector;
     var runner;
 
-    function createRunner(defaultBindings = null) {
+    function createRunner(defaultBindings = null): Runner {
       if (isBlank(defaultBindings)) {
         defaultBindings = [];
       }
       runner = new Runner([
         defaultBindings,
-        bind(Sampler).toFactory(
-            (_injector) => {
-              injector = _injector;
-              return new MockSampler();
-            },
-            [Injector]),
-        bind(Metric).toFactory(() => new MockMetric(), []),
-        bind(Validator).toFactory(() => new MockValidator(), []),
-        bind(WebDriverAdapter).toFactory(() => new MockWebDriverAdapter(), [])
+        {
+          provide: Sampler,
+          useFactory: (_injector) => {
+            injector = _injector;
+            return new MockSampler();
+          },
+          deps: [Injector]
+        },
+        { provide: Metric, useFactory: () => new MockMetric(), deps: []},
+        { provide: Validator, useFactory: () => new MockValidator(), deps: []},
+        { provide: WebDriverAdapter, useFactory: () => new MockWebDriverAdapter(), deps: []}
       ]);
       return runner;
     }
@@ -61,8 +62,8 @@ export function main() {
        }));
 
     it('should merge SampleDescription.description', inject([AsyncTestCompleter], (async) => {
-         createRunner([bind(Options.DEFAULT_DESCRIPTION).toValue({'a': 1})])
-             .sample({id: 'someId', bindings: [bind(Options.SAMPLE_DESCRIPTION).toValue({'b': 2})]})
+         createRunner([{provide: Options.DEFAULT_DESCRIPTION, useValue: {'a': 1}}])
+             .sample({id: 'someId', providers: [{provide: Options.SAMPLE_DESCRIPTION, useValue: {'b': 2}}]})
              .then((_) => injector.get(SampleDescription))
              .then((desc) => {
                expect(desc.description)
@@ -114,16 +115,10 @@ export function main() {
        }));
 
     it('should overwrite bindings per sample call', inject([AsyncTestCompleter], (async) => {
-         createRunner([
-           bind(Options.DEFAULT_DESCRIPTION)
-               .toValue({'a': 1}),
-         ])
+         createRunner([{provide: Options.DEFAULT_DESCRIPTION, useValue: {'a': 1}}])
              .sample({
                id: 'someId',
-               bindings: [
-                 bind(Options.DEFAULT_DESCRIPTION)
-                     .toValue({'a': 2}),
-               ]
+               providers: [{provide: Options.DEFAULT_DESCRIPTION, useValue: {'a': 2}}]
              })
              .then((_) => injector.get(SampleDescription))
              .then((desc) => {

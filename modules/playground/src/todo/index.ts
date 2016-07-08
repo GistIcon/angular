@@ -1,23 +1,35 @@
-import {bootstrap} from 'angular2/bootstrap';
-import {Component, View} from 'angular2/core';
-import {NgFor} from 'angular2/common';
-import {Store, Todo, TodoFactory} from './services/TodoStore';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-@Component({selector: 'todo-app', viewProviders: [Store, TodoFactory]})
-@View({templateUrl: 'todo.html', directives: [NgFor]})
+import {bootstrap} from '@angular/platform-browser-dynamic';
+import {Component} from '@angular/core';
+import {NgFor} from '@angular/common';
+import {Store, Todo, TodoFactory} from './app/TodoStore';
+
+@Component({
+  selector: 'todo-app',
+  viewProviders: [Store, TodoFactory],
+  templateUrl: 'todo.html',
+  directives: [NgFor]
+})
 class TodoApp {
   todoEdit: Todo = null;
 
-  constructor(public todoStore: Store, public factory: TodoFactory) {}
+  constructor(public todoStore: Store<Todo>, public factory: TodoFactory) {}
 
-  enterTodo(inputElement): void {
+  enterTodo(inputElement: any /** TODO #9100 */): void {
     this.addTodo(inputElement.value);
     inputElement.value = '';
   }
 
   editTodo(todo: Todo): void { this.todoEdit = todo; }
 
-  doneEditing($event, todo: Todo): void {
+  doneEditing($event: any /** TODO #9100 */, todo: Todo): void {
     var which = $event.which;
     var target = $event.target;
     if (which === 13) {
@@ -35,7 +47,7 @@ class TodoApp {
 
   deleteMe(todo: Todo): void { this.todoStore.remove(todo); }
 
-  toggleAll($event): void {
+  toggleAll($event: any /** TODO #9100 */): void {
     var isComplete = $event.target.checked;
     this.todoStore.list.forEach((todo: Todo) => { todo.completed = isComplete; });
   }

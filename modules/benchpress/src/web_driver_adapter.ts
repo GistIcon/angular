@@ -1,7 +1,5 @@
-import {bind, provide, Provider} from 'angular2/src/core/di';
-import {Promise} from 'angular2/src/facade/async';
-import {BaseException, WrappedException} from 'angular2/src/facade/exceptions';
-import {Map} from 'angular2/src/facade/collection';
+import {BaseException, WrappedException} from '@angular/facade';
+import {Map} from '@angular/facade';
 
 /**
  * A WebDriverAdapter bridges API differences between different WebDriver clients,
@@ -9,8 +7,8 @@ import {Map} from 'angular2/src/facade/collection';
  * Needs one implementation for every supported WebDriver client.
  */
 export abstract class WebDriverAdapter {
-  static bindTo(delegateToken): Provider[] {
-    return [bind(WebDriverAdapter).toFactory((delegate) => delegate, [delegateToken])];
+  static bindTo(delegateToken): any[] {
+    return [{provide: WebDriverAdapter, useFactory: (delegate) => delegate, deps: [delegateToken]}];
   }
 
   waitFor(callback: Function): Promise<any> { throw new BaseException('NYI'); }

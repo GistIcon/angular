@@ -1,22 +1,30 @@
-import {bootstrap} from 'angular2/bootstrap';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
+import {bootstrap} from '@angular/platform-browser-dynamic';
 import {
   FORM_DIRECTIVES,
   ControlGroup,
-  NgControl,
   Validators,
   NgFormModel,
   FormBuilder,
   NgIf,
   NgFor
-} from 'angular2/common';
-import {Component, Directive, View, Host} from 'angular2/core';
+} from '@angular/common';
+import {Component, Directive, Host} from '@angular/core';
 
-import {RegExpWrapper, print, isPresent} from 'angular2/src/facade/lang';
+import {RegExpWrapper, print, isPresent} from '@angular/core/src/facade/lang';
+import {AbstractControl} from '@angular/common';
 
 /**
  * Custom validator.
  */
-function creditCardValidator(c): {[key: string]: boolean} {
+function creditCardValidator(c: AbstractControl): {[key: string]: boolean} {
   if (isPresent(c.value) && RegExpWrapper.test(/^\d{16}$/g, c.value)) {
     return null;
   } else {
@@ -39,15 +47,16 @@ function creditCardValidator(c): {[key: string]: boolean} {
  * actual error message.
  * To make it simple, we are using a simple map here.
  */
-@Component({selector: 'show-error', inputs: ['controlPath: control', 'errorTypes: errors']})
-@View({
+@Component({
+  selector: 'show-error',
+  inputs: ['controlPath: control', 'errorTypes: errors'],
   template: `
     <span *ngIf="errorMessage !== null">{{errorMessage}}</span>
   `,
   directives: [NgIf]
 })
 class ShowError {
-  formDir;
+  formDir: any /** TODO #9100 */;
   controlPath: string;
   errorTypes: string[];
 
@@ -68,13 +77,14 @@ class ShowError {
 
   _errorMessage(code: string): string {
     var config = {'required': 'is required', 'invalidCreditCard': 'is invalid credit card number'};
-    return config[code];
+    return (config as any /** TODO #9100 */)[code];
   }
 }
 
 
-@Component({selector: 'model-driven-forms', viewProviders: [FormBuilder]})
-@View({
+@Component({
+  selector: 'model-driven-forms',
+  viewProviders: [FormBuilder],
   template: `
     <h1>Checkout Form (Model Driven)</h1>
 
@@ -99,7 +109,7 @@ class ShowError {
       <p>
         <label for="country">Country</label>
         <select id="country" ngControl="country">
-          <option *ngFor="#c of countries" [value]="c">{{c}}</option>
+          <option *ngFor="let c of countries" [value]="c">{{c}}</option>
         </select>
       </p>
 
@@ -133,7 +143,7 @@ class ShowError {
   directives: [FORM_DIRECTIVES, NgFor, ShowError]
 })
 class ModelDrivenForms {
-  form;
+  form: any /** TODO #9100 */;
   countries = ['US', 'Canada'];
 
   constructor(fb: FormBuilder) {

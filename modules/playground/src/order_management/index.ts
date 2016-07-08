@@ -1,18 +1,22 @@
-import {bootstrap} from 'angular2/bootstrap';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
+import {bootstrap} from '@angular/platform-browser-dynamic';
 import {
   Component,
-  Directive,
-  Host,
-  forwardRef,
-  Provider,
   EventEmitter,
   Injectable,
   Input,
   Output
-} from 'angular2/core';
-import {NgIf, NgFor, FORM_DIRECTIVES} from 'angular2/common';
+} from '@angular/core';
+import {NgIf, NgFor, FORM_DIRECTIVES} from '@angular/common';
 
-import {ListWrapper} from 'angular2/src/facade/collection';
+import {ListWrapper} from '@angular/core/src/facade/collection';
 
 /**
  * You can find the Angular 1 implementation of this example here:
@@ -82,7 +86,7 @@ class DataService {
   selector: 'order-list-cmp',
   template: `
     <h1>Orders</h1>
-  	<div *ngFor="#order of orders" [class.warning]="order.total > order.limit">
+  	<div *ngFor="let order of orders" [class.warning]="order.total > order.limit">
       <div>
         <label>Customer name:</label>
         {{order.customerName}}
@@ -173,7 +177,7 @@ class OrderItemComponent {
 
       <h2>Items</h2>
       <button (click)="addItem()">Add Item</button>
-      <order-item-cmp *ngFor="#item of order.items" [item]="item" (delete)="deleteItem(item)"></order-item-cmp>
+      <order-item-cmp *ngFor="let item of order.items" [item]="item" (delete)="deleteItem(item)"></order-item-cmp>
     </div>
   `,
   directives: [FORM_DIRECTIVES, OrderItemComponent, NgFor, NgIf]

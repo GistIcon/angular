@@ -1,13 +1,22 @@
-import {InboxApp} from './inbox-app';
-import {provide} from 'angular2/core';
-import {bootstrap} from 'angular2/bootstrap';
-import {ROUTER_PROVIDERS, HashLocationStrategy, LocationStrategy} from 'angular2/router';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-import {reflector} from 'angular2/src/core/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/core/reflection/reflection_capabilities';
+import {InboxApp, ROUTER_CONFIG} from './app/inbox-app';
+import {bootstrap} from '@angular/platform-browser-dynamic';
+import {HashLocationStrategy, LocationStrategy} from '@angular/common';
+import {provideRoutes, RouterModule} from '@angular/router';
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
-  bootstrap(InboxApp,
-            [ROUTER_PROVIDERS, provide(LocationStrategy, {useClass: HashLocationStrategy})]);
+  bootstrap(InboxApp, {
+    providers: [
+      provideRoutes(ROUTER_CONFIG),
+      {provide: LocationStrategy, useClass: HashLocationStrategy}
+    ],
+    modules: [RouterModule]
+  });
 }

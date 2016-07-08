@@ -1,6 +1,5 @@
-import {isPresent, isBlank, Date, DateWrapper} from 'angular2/src/facade/lang';
-import {Promise, PromiseWrapper} from 'angular2/src/facade/async';
-import {bind, provide, Provider, OpaqueToken} from 'angular2/src/core/di';
+import {isPresent, isBlank, Date, DateWrapper} from '@angular/facade';
+import {PromiseWrapper} from '@angular/facade';
 
 import {Metric} from './metric';
 import {Validator} from './validator';
@@ -20,7 +19,7 @@ import {MeasureValues} from './measure_values';
  */
 export class Sampler {
   // TODO(tbosch): use static values when our transpiler supports them
-  static get BINDINGS(): Provider[] { return _PROVIDERS; }
+  static get PROVIDERS(): any[] { return _PROVIDERS; }
 
   _driver: WebDriverAdapter;
   _metric: Metric;
@@ -62,8 +61,8 @@ export class Sampler {
     return loop(new SampleState([], null));
   }
 
-  _iterate(lastState) {
-    var resultPromise;
+  _iterate(lastState): Promise<SampleState> {
+    var resultPromise: Promise<any>;
     if (isPresent(this._prepare)) {
       resultPromise = this._driver.waitFor(this._prepare);
     } else {
@@ -95,26 +94,28 @@ export class SampleState {
 }
 
 var _PROVIDERS = [
-  bind(Sampler)
-      .toFactory((driver, metric, reporter, validator, prepare, execute, now) => new Sampler({
-                   driver: driver,
-                   reporter: reporter,
-                   validator: validator,
-                   metric: metric,
-                   // TODO(tbosch): DI right now does not support null/undefined objects
-                   // Mostly because the cache would have to be initialized with a
-                   // special null object, which is expensive.
-                   prepare: prepare !== false ? prepare : null,
-                   execute: execute,
-                   now: now
-                 }),
-                 [
-                   WebDriverAdapter,
-                   Metric,
-                   Reporter,
-                   Validator,
-                   Options.PREPARE,
-                   Options.EXECUTE,
-                   Options.NOW
-                 ])
+  {
+    provide: Sampler,
+    useFactory: (driver, metric, reporter, validator, prepare, execute, now) => new Sampler({
+      driver: driver,
+      reporter: reporter,
+      validator: validator,
+      metric: metric,
+      // TODO(tbosch): DI right now does not support null/undefined objects
+      // Mostly because the cache would have to be initialized with a
+      // special null object, which is expensive.
+      prepare: prepare !== false ? prepare : null,
+      execute: execute,
+      now: now
+    }),
+    deps: [
+      WebDriverAdapter,
+      Metric,
+      Reporter,
+      Validator,
+      Options.PREPARE,
+      Options.EXECUTE,
+      Options.NOW
+    ]
+  }
 ];

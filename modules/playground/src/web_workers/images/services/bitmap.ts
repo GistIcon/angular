@@ -1,6 +1,14 @@
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
 /// <reference path="../bitmap.d.ts" /> /// <reference path="../b64.d.ts" />
-import {Injectable} from 'angular2/core';
-declare var base64js;
+import {Injectable} from '@angular/core';
+declare var base64js: any /** TODO #9100 */;
 
 // Temporary fix for Typescript issue #4220 (https://github.com/Microsoft/TypeScript/issues/4220)
 // var _ImageData: (width: number, height: number) => void = <any>postMessage;
@@ -63,7 +71,7 @@ export class BitmapService {
     return imageData;
   }
 
-  private _swap(data: any[], index1: number, index2: number) {
+  private _swap(data: Uint8Array | Uint8ClampedArray | number[], index1: number, index2: number) {
     var temp = data[index1];
     data[index1] = data[index2];
     data[index2] = temp;
@@ -151,7 +159,7 @@ export class BitmapService {
   // Based on example from
   // http://www.worldwidewhat.net/2012/07/how-to-draw-bitmaps-using-javascript/
   private _getLittleEndianHex(value: number): string {
-    var result = [];
+    var result: any[] /** TODO #9100 */ = [];
 
     for (var bytes = 4; bytes > 0; bytes--) {
       result.push(String.fromCharCode(value & 255));

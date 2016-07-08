@@ -6,25 +6,23 @@ const SETUP_METHOD_NAME = 'initReflector';
 const REFLECTOR_VAR_NAME = 'reflector';
 const TRANSFORM_DYNAMIC_MODE = 'transform_dynamic';
 const CSS_EXTENSION = '.css';
+const DEFERRED_EXTENSION = '.dart.deferredCount';
 const SHIMMED_STYLESHEET_EXTENSION = '.css.shim.dart';
 const NON_SHIMMED_STYLESHEET_EXTENSION = '.css.dart';
-const DEPS_EXTENSION = '.ng_deps.dart';
 const META_EXTENSION = '.ng_meta.json';
 const REFLECTION_CAPABILITIES_NAME = 'ReflectionCapabilities';
 const REFLECTOR_IMPORT = 'package:angular2/src/core/reflection/reflection.dart';
 const REFLECTOR_PREFIX = '_ngRef';
 const REGISTER_TYPE_METHOD_NAME = 'registerType';
-const REGISTER_GETTERS_METHOD_NAME = 'registerGetters';
-const REGISTER_SETTERS_METHOD_NAME = 'registerSetters';
-const REGISTER_METHODS_METHOD_NAME = 'registerMethods';
 const SUMMARY_META_EXTENSION = '.ng_summary.json';
-const TEMPLATE_EXTENSION = '.template.dart';
+const TEMPLATE_EXTENSION = '.ngfactory.dart';
 
 /// Note that due to the implementation of `_toExtension`, ordering is
 /// important. For example, putting '.dart' first in this list will cause
-/// incorrect behavior.
+/// incorrect behavior because it will (incompletely) match '.ngfactory.dart'
+/// files.
 const ALL_EXTENSIONS = const [
-  DEPS_EXTENSION,
+  DEFERRED_EXTENSION,
   META_EXTENSION,
   SUMMARY_META_EXTENSION,
   TEMPLATE_EXTENSION,
@@ -38,20 +36,22 @@ const ALL_EXTENSIONS = const [
 /// any files named like transformer outputs will be reported as generated.
 bool isGenerated(String uri) {
   return const [
-    DEPS_EXTENSION,
+    DEFERRED_EXTENSION,
+    META_EXTENSION,
     NON_SHIMMED_STYLESHEET_EXTENSION,
     SHIMMED_STYLESHEET_EXTENSION,
+    SUMMARY_META_EXTENSION,
     TEMPLATE_EXTENSION,
   ].any((ext) => uri.endsWith(ext));
 }
 
+/// Returns `uri` with its extension updated to [DEFERRED_EXTENSION].
+String toDeferredExtension(String uri) =>
+    _toExtension(uri, ALL_EXTENSIONS, DEFERRED_EXTENSION);
+
 /// Returns `uri` with its extension updated to [META_EXTENSION].
 String toMetaExtension(String uri) =>
     _toExtension(uri, ALL_EXTENSIONS, META_EXTENSION);
-
-/// Returns `uri` with its extension updated to [DEPS_EXTENSION].
-String toDepsExtension(String uri) =>
-    _toExtension(uri, ALL_EXTENSIONS, DEPS_EXTENSION);
 
 /// Returns `uri` with its extension updated to [TEMPLATES_EXTENSION].
 String toTemplateExtension(String uri) =>
@@ -81,5 +81,9 @@ String _toExtension(
           '$toExtension';
     }
   }
-  return uri;
+  throw new ArgumentError.value(
+      uri,
+      'uri',
+      'Provided value ends with an unexpected extension. '
+      'Expected extension(s): [${fromExtensions.join(', ')}].');
 }
