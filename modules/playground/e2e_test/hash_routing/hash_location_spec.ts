@@ -1,7 +1,14 @@
-import {verifyNoBrowserErrors} from 'angular2/src/testing/e2e_util';
-import {Promise} from 'angular2/src/facade/async';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-function waitForElement(selector) {
+import {verifyNoBrowserErrors} from '@angular/platform-browser/testing_e2e';
+
+function waitForElement(selector: any /** TODO #9100 */) {
   var EC = (<any>protractor).ExpectedConditions;
   // Waits for the element with id 'abc' to be present on the dom.
   browser.wait(EC.presenceOf($(selector)), 20000);
@@ -10,7 +17,7 @@ function waitForElement(selector) {
 describe('hash routing example app', function() {
   afterEach(verifyNoBrowserErrors);
 
-  var URL = 'playground/src/hash_routing/index.html';
+  var URL = 'all/playground/src/hash_routing/index.html';
 
   it('should navigate between routes', function() {
     browser.get(URL + '#/bye');
@@ -29,7 +36,7 @@ describe('hash routing example app', function() {
 
 
   it('should open in new window if target is _blank', () => {
-    var URL = 'playground/src/hash_routing/index.html';
+    var URL = 'all/playground/src/hash_routing/index.html';
     browser.get(URL + '#/');
     waitForElement('hello-cmp');
 

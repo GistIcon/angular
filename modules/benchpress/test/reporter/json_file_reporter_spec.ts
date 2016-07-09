@@ -9,15 +9,13 @@ import {
   inject,
   it,
   xit,
-} from 'angular2/testing_internal';
+} from '@angular/testing/testing_internal';
 
-import {DateWrapper, Json, RegExpWrapper, isPresent} from 'angular2/src/facade/lang';
-import {PromiseWrapper} from 'angular2/src/facade/async';
+import {DateWrapper, Json, RegExpWrapper, isPresent} from '@angular/facade';
+import {PromiseWrapper} from '@angular/facade';
 
 import {
-  bind,
-  provide,
-  Injector,
+  ReflectiveInjector,
   SampleDescription,
   MeasureValues,
   Options
@@ -32,18 +30,19 @@ export function main() {
 
     function createReporter({sampleId, descriptions, metrics, path}) {
       var bindings = [
-        JsonFileReporter.BINDINGS,
-        provide(SampleDescription,
-                {useValue: new SampleDescription(sampleId, descriptions, metrics)}),
-        bind(JsonFileReporter.PATH).toValue(path),
-        bind(Options.NOW).toValue(() => DateWrapper.fromMillis(1234)),
-        bind(Options.WRITE_FILE)
-            .toValue((filename, content) => {
-              loggedFile = {'filename': filename, 'content': content};
-              return PromiseWrapper.resolve(null);
-            })
+        JsonFileReporter.PROVIDERS,
+        {provide: SampleDescription, useValue: new SampleDescription(sampleId, descriptions, metrics)},
+        {provide: JsonFileReporter.PATH, useValue(path)},
+        {provide: Options.NOW, useValue: () => DateWrapper.fromMillis(1234)},
+        {
+          provide: Options.WRITE_FILE,
+          useValue: (filename, content) => {
+            loggedFile = {'filename': filename, 'content': content};
+            return PromiseWrapper.resolve(null);
+          }
+        }
       ];
-      return Injector.resolveAndCreate(bindings).get(JsonFileReporter);
+      return ReflectiveInjector.resolveAndCreate(bindings).get(JsonFileReporter);
     }
 
     it('should write all data into a file', inject([AsyncTestCompleter], (async) => {

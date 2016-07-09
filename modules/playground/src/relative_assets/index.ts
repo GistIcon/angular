@@ -1,12 +1,16 @@
-import {bootstrap} from 'angular2/bootstrap';
-import {reflector} from 'angular2/src/core/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/core/reflection/reflection_capabilities';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-import {Renderer, ElementRef, Component, Directive, Injectable} from 'angular2/core';
-import {MyCmp} from './my_cmp/my_cmp';
+import {bootstrap} from '@angular/platform-browser-dynamic';
+import {Component} from '@angular/core';
+import {MyCmp} from './app/my_cmp';
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
   bootstrap(RelativeApp);
 }
 

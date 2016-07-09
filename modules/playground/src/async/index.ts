@@ -1,10 +1,18 @@
-import {bootstrap} from 'angular2/bootstrap';
-import {Component, View} from 'angular2/core';
-import {NgIf} from 'angular2/common';
-import {TimerWrapper} from 'angular2/src/facade/async';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-@Component({selector: 'async-app'})
-@View({
+import {bootstrap} from '@angular/platform-browser-dynamic';
+import {Component} from '@angular/core';
+import {NgIf} from '@angular/common';
+import {TimerWrapper} from '@angular/core/src/facade/async';
+
+@Component({
+  selector: 'async-app',
   template: `
     <div id='increment'>
       <span class='val'>{{val1}}</span>
@@ -33,9 +41,9 @@ class AsyncApplication {
   val2: number = 0;
   val3: number = 0;
   val4: number = 0;
-  timeoutId = null;
-  multiTimeoutId = null;
-  intervalId = null;
+  timeoutId: any /** TODO #9100 */ = null;
+  multiTimeoutId: any /** TODO #9100 */ = null;
+  intervalId: any /** TODO #9100 */ = null;
 
   increment(): void { this.val1++; };
 
@@ -51,7 +59,7 @@ class AsyncApplication {
     this.cancelMultiDelayedIncrements();
 
     var self = this;
-    function helper(_i) {
+    function helper(_i: any /** TODO #9100 */) {
       if (_i <= 0) {
         self.multiTimeoutId = null;
         return;

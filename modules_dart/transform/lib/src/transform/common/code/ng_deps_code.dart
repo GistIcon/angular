@@ -12,23 +12,19 @@ import 'annotation_code.dart';
 import 'import_export_code.dart';
 import 'reflection_info_code.dart';
 import 'parameter_code.dart';
-import 'queries_code.dart';
 
-/// Visitor responsible for parsing source Dart files (that is, not
-/// `.ng_deps.dart` files) into [NgDepsModel] objects.
+/// Visitor responsible for parsing Dart source into [NgDepsModel] objects.
 class NgDepsVisitor extends RecursiveAstVisitor<Object> {
   final AssetId processedFile;
   final _importVisitor = new ImportVisitor();
   final _exportVisitor = new ExportVisitor();
   final ReflectionInfoVisitor _reflectableVisitor;
-  final QueriesVisitor _queriesVisitor;
 
   bool _isPart = false;
   NgDepsModel _model = null;
 
   NgDepsVisitor(AssetId processedFile, AnnotationMatcher annotationMatcher)
       : this.processedFile = processedFile,
-        _queriesVisitor = new QueriesVisitor(processedFile, annotationMatcher),
         _reflectableVisitor =
             new ReflectionInfoVisitor(processedFile, annotationMatcher);
 
@@ -51,14 +47,6 @@ class NgDepsVisitor extends RecursiveAstVisitor<Object> {
     var reflectableModel = _reflectableVisitor.visitClassDeclaration(node);
     if (reflectableModel != null) {
       model.reflectables.add(reflectableModel);
-      var queryFields = _queriesVisitor.visitClassDeclaration(node);
-      if (queryFields != null) {
-        for (var queryField in queryFields) {
-          if (!model.setters.contains(queryField)) {
-            model.setters.add(queryField);
-          }
-        }
-      }
     }
     return null;
   }
@@ -113,7 +101,7 @@ class NgDepsVisitor extends RecursiveAstVisitor<Object> {
 }
 
 /// Defines the format in which an [NgDepsModel] is expressed as Dart code
-/// in a `.ng_deps.dart` file.
+/// when registered with the reflector.
 class NgDepsWriter extends Object
     with
         AnnotationWriterMixin,
@@ -137,12 +125,12 @@ abstract class NgDepsWriterMixin
         ReflectionWriterMixin {
   StringBuffer get buffer;
 
-  void writeNgDepsModel(NgDepsModel model) {
+  void writeNgDepsModel(NgDepsModel model, String templateCode) {
     if (model.libraryUri.isNotEmpty) {
-      buffer.writeln('library ${model.libraryUri}${DEPS_EXTENSION};\n');
+      buffer.writeln('library ${model.libraryUri}${TEMPLATE_EXTENSION};\n');
     }
 
-    // We need to import & export the source file.
+    // We need to import & export (see below) the source file.
     writeImportModel(new ImportModel()..uri = model.sourceFile);
 
     // Used to register reflective information.
@@ -162,16 +150,15 @@ abstract class NgDepsWriterMixin
     writeExportModel(new ExportModel()..uri = model.sourceFile);
     model.exports.forEach(writeExportModel);
 
+    buffer.writeln(templateCode);
+
     buffer
       ..writeln('var _visited = false;')
       ..writeln('void ${SETUP_METHOD_NAME}() {')
       ..writeln('if (_visited) return; _visited = true;');
 
     final needsReceiver = (model.reflectables != null &&
-            model.reflectables.isNotEmpty) ||
-        (model.getters != null && model.getters.isNotEmpty) ||
-        (model.setters != null && model.setters.isNotEmpty) ||
-        (model.methods != null && model.methods.isNotEmpty);
+            model.reflectables.isNotEmpty);
 
     if (needsReceiver) {
       buffer.writeln('$REFLECTOR_PREFIX.$REFLECTOR_VAR_NAME');
@@ -179,24 +166,6 @@ abstract class NgDepsWriterMixin
 
     if (model.reflectables != null && model.reflectables.isNotEmpty) {
       model.reflectables.forEach(writeRegistration);
-    }
-
-    if (model.getters != null && model.getters.isNotEmpty) {
-      buffer.writeln('..registerGetters({'
-          '${model.getters.map((g) => "'$g': (o) => o.$g").join(', ')}'
-          '})');
-    }
-
-    if (model.setters != null && model.setters.isNotEmpty) {
-      buffer.writeln('..registerSetters({'
-          '${model.setters.map((g) => "'$g': (o, v) => o.$g = v").join(', ')}'
-          '})');
-    }
-
-    if (model.methods != null && model.methods.isNotEmpty) {
-      buffer.writeln('..registerMethods({'
-          '${model.methods.map((g) => "'$g': (o, args) => o.$g.apply(args)").join(', ')}'
-          '})');
     }
 
     if (needsReceiver) {

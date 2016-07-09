@@ -1,16 +1,16 @@
-import {Component, provide} from 'angular2/core';
-import {bootstrap} from 'angular2/bootstrap';
-import {
-  RouteConfig,
-  Route,
-  ROUTER_PROVIDERS,
-  ROUTER_DIRECTIVES,
-  HashLocationStrategy,
-  LocationStrategy
-} from 'angular2/router';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-import {reflector} from 'angular2/src/core/reflection/reflection';
-import {ReflectionCapabilities} from 'angular2/src/core/reflection/reflection_capabilities';
+import {Component} from '@angular/core';
+import {bootstrap} from '@angular/platform-browser-dynamic';
+import {RouteConfig, Route, ROUTER_PROVIDERS, ROUTER_DIRECTIVES} from '@angular/router-deprecated';
+import {HashLocationStrategy, LocationStrategy} from '@angular/common';
+
 
 @Component({selector: 'hello-cmp', template: `hello`})
 class HelloCmp {
@@ -46,7 +46,6 @@ class AppCmp {
 
 
 export function main() {
-  reflector.reflectionCapabilities = new ReflectionCapabilities();
   bootstrap(AppCmp,
-            [ROUTER_PROVIDERS, provide(LocationStrategy, {useClass: HashLocationStrategy})]);
+            [ROUTER_PROVIDERS, {provide: LocationStrategy, useClass: HashLocationStrategy}]);
 }

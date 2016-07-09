@@ -26,10 +26,17 @@ class TestService {
   }
 }
 
+@Component(selector: 'external-template-cmp')
+@View(templateUrl: 'test_template.html')
+class ExternalTemplateComponent {
+  ExternalTemplateComponent() {
+  }
+}
+
 class MyToken {}
 
 const TEMPLATE =
-    '<div><copy-me template=\'ngFor #item of items\'>{{item.toString()}};</copy-me></div>';
+    '<div><copy-me template=\'ngFor let item of items\'>{{item.toString()}};</copy-me></div>';
 
 void main() {
   initAngularTests();
@@ -77,6 +84,15 @@ void main() {
     rootTC.detectChanges();
 
     expect(rootTC.debugElement.nativeElement.text, equals('1;2;3;'));
+  });
+
+  ngTest('should allow a component using a templateUrl', (TestComponentBuilder tcb) async {
+    var rootTC = await tcb
+        .createAsync(ExternalTemplateComponent);
+
+    rootTC.detectChanges();
+
+    expect(rootTC.debugElement.nativeElement.text, equals('from external template\n'));
   });
 
   group('expected failures', () {

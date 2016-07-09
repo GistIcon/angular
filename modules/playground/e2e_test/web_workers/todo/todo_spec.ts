@@ -1,5 +1,12 @@
-import {verifyNoBrowserErrors} from 'angular2/src/testing/e2e_util';
-import {Promise} from 'angular2/src/facade/async';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
+import {verifyNoBrowserErrors} from '@angular/platform-browser/testing_e2e';
 
 describe('WebWorkers Todo', function() {
   afterEach(() => {
@@ -7,7 +14,7 @@ describe('WebWorkers Todo', function() {
     browser.ignoreSynchronization = false;
   });
 
-  var URL = "playground/src/web_workers/todo/index.html";
+  var URL = 'all/playground/src/web_workers/todo/index.html';
 
   it('should bootstrap', () => {
     // This test can't wait for Angular 2 as Testability is not available when using WebWorker

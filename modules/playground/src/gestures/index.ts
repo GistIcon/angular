@@ -1,18 +1,25 @@
-import {bootstrap} from 'angular2/bootstrap';
-import {Component, View} from 'angular2/core';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-@Component({selector: 'gestures-app'})
-@View({templateUrl: 'template.html'})
+import {bootstrap} from '@angular/platform-browser-dynamic';
+import {Component} from '@angular/core';
+
+@Component({selector: 'gestures-app', templateUrl: 'template.html'})
 class GesturesCmp {
   swipeDirection: string = '-';
   pinchScale: number = 1;
   rotateAngle: number = 0;
 
-  onSwipe(event): void { this.swipeDirection = event.deltaX > 0 ? 'right' : 'left'; }
+  onSwipe(event: any /** TODO #9100 */): void { this.swipeDirection = event.deltaX > 0 ? 'right' : 'left'; }
 
-  onPinch(event): void { this.pinchScale = event.scale; }
+  onPinch(event: any /** TODO #9100 */): void { this.pinchScale = event.scale; }
 
-  onRotate(event): void { this.rotateAngle = event.rotation; }
+  onRotate(event: any /** TODO #9100 */): void { this.rotateAngle = event.rotation; }
 }
 
 export function main() {

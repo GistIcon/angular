@@ -1,7 +1,14 @@
-import {platform} from "angular2/core";
-import {WORKER_APP_PLATFORM, WORKER_APP_APPLICATION} from "angular2/platform/worker_app";
-import {App} from "./index_common";
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
+import {bootstrapWorkerApp} from '@angular/platform-browser-dynamic';
+import {App} from './index_common';
 
 export function main() {
-  platform([WORKER_APP_PLATFORM]).application([WORKER_APP_APPLICATION]).bootstrap(App)
+  bootstrapWorkerApp(App);
 }

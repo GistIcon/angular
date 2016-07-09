@@ -9,15 +9,16 @@ import {wrapDiffingPlugin, DiffingBroccoliPlugin, DiffResult} from './diffing-br
  * This guarantees that platform-independent modules remain platoform-independent.
  */
 class CheckImports implements DiffingBroccoliPlugin {
-  static IMPORT_DECL_REGEXP = new RegExp(`^import[^;]+;`, "mg");
-  static IMPORT_PATH_REGEXP = new RegExp(`['"]([^'"]+)+['"]`, "m");
+  static IMPORT_DECL_REGEXP = new RegExp(`^import[^;]+;`, 'mg');
+  static IMPORT_PATH_REGEXP = new RegExp(`['"]([^'"]+)+['"]`, 'm');
 
-  static ALLOWED_IMPORTS = {
-    "angular2/src/core": ["angular2/src/facade"],
-    "angular2/src/facade": ["rxjs"],
-    "angular2/src/common": ["angular2/core", "angular2/src/facade"],
-    "angular2/src/http": ["angular2/core", "angular2/src/facade", "rxjs"],
-    "angular2/src/upgrade": ["angular2/core", "angular2/src/facade", "angular2/platform/browser"]
+  static ALLOWED_IMPORTS: {[s: string]: string[]} = {
+    'angular2/src/core': ['angular2/src/facade'],
+    'angular2/src/facade': ['rxjs'],
+    'angular2/src/common': ['angular2/core', 'angular2/src/facade'],
+    'angular2/src/http': ['angular2/core', 'angular2/src/facade', 'rxjs'],
+    'angular2/src/upgrade':
+        ['angular2/core', 'angular2/src/facade', 'angular2/platform/browser', 'angular2/compiler']
     //"angular2/src/render": [
     //  "angular2/animate",
     //  "angular2/core",
@@ -27,7 +28,7 @@ class CheckImports implements DiffingBroccoliPlugin {
 
   private initRun = true;
 
-  constructor(private inputPath, private cachePath, private options) {}
+  constructor(private inputPath: string, private cachePath: string, private options: number) {}
 
   rebuild(treeDiff: DiffResult) {
     const errors = this.checkAllPaths(treeDiff);
@@ -54,8 +55,8 @@ class CheckImports implements DiffingBroccoliPlugin {
 
   private checkFilePath(filePath: string) {
     const sourceFilePath = path.join(this.inputPath, filePath);
-    if (endsWith(sourceFilePath, ".ts") && fs.existsSync(sourceFilePath)) {
-      const content = fs.readFileSync(sourceFilePath, "UTF-8");
+    if (endsWith(sourceFilePath, '.ts') && fs.existsSync(sourceFilePath)) {
+      const content = fs.readFileSync(sourceFilePath, 'UTF-8');
       const imports = content.match(CheckImports.IMPORT_DECL_REGEXP);
       if (imports) {
         return imports.filter(i => !this.isAllowedImport(filePath, i))
@@ -72,14 +73,14 @@ class CheckImports implements DiffingBroccoliPlugin {
     if (!res || res.length < 2) return true;  // non-es6 import
     const importPath = res[1];
 
-    if (startsWith(importPath, "./") || startsWith(importPath, "../")) return true;
+    if (startsWith(importPath, './') || startsWith(importPath, '../')) return true;
 
     const c = CheckImports.ALLOWED_IMPORTS;
     for (var prop in c) {
       if (c.hasOwnProperty(prop) && startsWith(sourceFile, prop)) {
         const allowedPaths = c[prop];
         return startsWith(importPath, prop) ||
-               allowedPaths.filter(p => startsWith(importPath, p)).length > 0;
+            allowedPaths.filter(p => startsWith(importPath, p)).length > 0;
       }
     }
 
@@ -87,7 +88,7 @@ class CheckImports implements DiffingBroccoliPlugin {
   }
 
   private formatError(filePath: string, importPath: string): string {
-    const i = importPath.replace(new RegExp(`\n`, 'g'), "\\n");
+    const i = importPath.replace(new RegExp(`\n`, 'g'), '\\n');
     return `${filePath}: ${i}`;
   }
 }

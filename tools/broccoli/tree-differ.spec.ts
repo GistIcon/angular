@@ -1,18 +1,10 @@
-/// <reference path="../typings/node/node.d.ts" />
-/// <reference path="../typings/jasmine/jasmine.d.ts" />
-
-console.warn(
-    "Skipping all tests in tree-differ.spec.ts because they require mock-fs which is currently incompatible with node 4.x. See: https://github.com/tschaub/mock-fs/issues/59");
-
-
-/*
 let mockfs = require('mock-fs');
 import fs = require('fs');
 import path = require('path');
 import {TreeDiffer} from './tree-differ';
 
 
-xdescribe('TreeDiffer', () => {
+describe('TreeDiffer', () => {
 
   afterEach(() => mockfs.restore());
 
@@ -36,8 +28,9 @@ xdescribe('TreeDiffer', () => {
 
       let diffResult = differ.diffTree();
 
-      expect(diffResult.addedPaths)
-          .toEqual(['file-1.txt', 'file-2.txt', 'subdir-1' + path.sep + 'file-1.1.txt']);
+      expect(diffResult.addedPaths).toEqual([
+        'file-1.txt', 'file-2.txt', 'subdir-1' + path.sep + 'file-1.1.txt'
+      ]);
 
       expect(diffResult.changedPaths).toEqual([]);
       expect(diffResult.removedPaths).toEqual([]);
@@ -89,8 +82,9 @@ xdescribe('TreeDiffer', () => {
 
       let diffResult = differ.diffTree();
 
-      expect(diffResult.addedPaths)
-          .toEqual(['file-1.txt', 'file-2.txt', 'subdir-1' + path.sep + 'file-1.1.txt']);
+      expect(diffResult.addedPaths).toEqual([
+        'file-1.txt', 'file-2.txt', 'subdir-1' + path.sep + 'file-1.1.txt'
+      ]);
 
       // change two files
       testDir['dir1']['file-1.txt'] = mockfs.file({content: 'new content', mtime: new Date(1000)});
@@ -100,8 +94,9 @@ xdescribe('TreeDiffer', () => {
 
       diffResult = differ.diffTree();
 
-      expect(diffResult.changedPaths)
-          .toEqual(['file-1.txt', 'subdir-1' + path.sep + 'file-1.1.txt']);
+      expect(diffResult.changedPaths).toEqual([
+        'file-1.txt', 'subdir-1' + path.sep + 'file-1.1.txt'
+      ]);
 
       expect(diffResult.removedPaths).toEqual([]);
 
@@ -136,8 +131,9 @@ xdescribe('TreeDiffer', () => {
 
       let diffResult = differ.diffTree();
 
-      expect(diffResult.addedPaths)
-          .toEqual(['file-1.txt', 'file-2.txt', 'subdir-1' + path.sep + 'file-1.1.txt']);
+      expect(diffResult.addedPaths).toEqual([
+        'file-1.txt', 'file-2.txt', 'subdir-1' + path.sep + 'file-1.1.txt'
+      ]);
 
       // change two files
       testDir['orig_path']['file-1.txt'] =
@@ -149,8 +145,9 @@ xdescribe('TreeDiffer', () => {
       diffResult = differ.diffTree();
 
       expect(diffResult.addedPaths).toEqual([]);
-      expect(diffResult.changedPaths)
-          .toEqual(['file-1.txt', 'subdir-1' + path.sep + 'file-1.1.txt']);
+      expect(diffResult.changedPaths).toEqual([
+        'file-1.txt', 'subdir-1' + path.sep + 'file-1.1.txt'
+      ]);
       expect(diffResult.removedPaths).toEqual([]);
 
       // change one file
@@ -189,14 +186,14 @@ xdescribe('TreeDiffer', () => {
     });
 
 
-    it("should throw an error if an extension isn't prefixed with doc", () => {
+    it('should throw an error if an extension isn\'t prefixed with doc', () => {
       // includeExtensions
       expect(() => new TreeDiffer('testLabel', 'dir1', ['js']))
-          .toThrowError("Extension must begin with '.'. Was: 'js'");
+          .toThrowError('Extension must begin with \'.\'. Was: \'js\'');
 
       // excludeExtentions
       expect(() => new TreeDiffer('testLabel', 'dir1', [], ['js']))
-          .toThrowError("Extension must begin with '.'. Was: 'js'");
+          .toThrowError('Extension must begin with \'.\'. Was: \'js\'');
     });
 
 
@@ -295,7 +292,7 @@ xdescribe('TreeDiffer', () => {
   describe('diff of new files', () => {
 
     it('should detect file additions', () => {
-      let testDir = {
+      let testDir: any = {
         'dir1':
             {'file-1.txt': mockfs.file({content: 'file-1.txt content', mtime: new Date(1000)})}
       };
@@ -315,7 +312,7 @@ xdescribe('TreeDiffer', () => {
 
 
     it('should detect file additions mixed with file changes', () => {
-      let testDir = {
+      let testDir: any = {
         'dir1':
             {'file-1.txt': mockfs.file({content: 'file-1.txt content', mtime: new Date(1000)})}
       };
@@ -357,7 +354,7 @@ xdescribe('TreeDiffer', () => {
 
 
     it('should detect file removals mixed with file changes and additions', () => {
-      let testDir = {
+      let testDir: any = {
         'dir1': {
           'file-1.txt': mockfs.file({content: 'file-1.txt content', mtime: new Date(1000)}),
           'file-2.txt': mockfs.file({content: 'file-1.txt content', mtime: new Date(1000)})
@@ -381,4 +378,3 @@ xdescribe('TreeDiffer', () => {
     });
   });
 });
-*/

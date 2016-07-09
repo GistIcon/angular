@@ -1,5 +1,13 @@
-import {bootstrap} from 'angular2/bootstrap';
-import {Renderer, ElementRef, Component, Directive, Injectable} from 'angular2/core';
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
+
+import {bootstrap} from '@angular/platform-browser-dynamic';
+import {Renderer, ElementRef, Component, Directive, Injectable} from '@angular/core';
 
 export function main() {
   // Bootstrapping only requires specifying a root component.
@@ -14,14 +22,14 @@ export function main() {
 
 // A service available to the Injector, used by the HelloCmp component.
 @Injectable()
-class GreetingService {
+export class GreetingService {
   greeting: string = 'hello';
 }
 
 // Directives are light-weight. They don't allow new
 // expression contexts (use @Component for those needs).
 @Directive({selector: '[red]'})
-class RedDec {
+export class RedDec {
   // ElementRef is always injectable and it wraps the element on which the
   // directive was found by the compiler.
   constructor(el: ElementRef, renderer: Renderer) {
@@ -34,8 +42,6 @@ class RedDec {
 //   ShadowDom.(http://www.html5rocks.com/en/tutorials/webcomponents/shadowdom/)
 // - Directive - add behavior to existing elements.
 
-// @Component is AtScript syntax to annotate the HelloCmp class as an Angular
-// 2.0 component.
 @Component({
   // The Selector prop tells Angular on which elements to instantiate this
   // class. The syntax supported is a basic subset of CSS selectors, for example

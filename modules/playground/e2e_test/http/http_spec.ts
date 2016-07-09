@@ -1,13 +1,19 @@
-/// <reference path="../../../angular2/typings/jasmine/jasmine.d.ts" />
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 
-import {verifyNoBrowserErrors} from 'angular2/src/testing/e2e_util';
+import {verifyNoBrowserErrors} from '@angular/platform-browser/testing_e2e';
 
 describe('http', function() {
 
   afterEach(verifyNoBrowserErrors);
 
   describe('fetching', function() {
-    var URL = 'playground/src/http/index.html';
+    var URL = 'all/playground/src/http/index.html';
 
     it('should fetch and display people', function() {
       browser.get(URL);
@@ -16,7 +22,7 @@ describe('http', function() {
   });
 });
 
-function getComponentText(selector, innerSelector) {
+function getComponentText(selector: any /** TODO #9100 */, innerSelector: any /** TODO #9100 */) {
   return browser.executeScript('return document.querySelector("' + selector + '").querySelector("' +
                                innerSelector + '").textContent.trim()');
 }
