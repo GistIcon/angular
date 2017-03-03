@@ -1,0 +1,7 @@
+test:
+  override:
+    - mkdir -p $CIRCLE_TEST_REPORTS/cucumber
+    - bundle exec cucumber --format angular.git  --out $CIRCLE_TEST_REPORTS/angular/tree/d0f5c25e6830c0ec4db24507925c0ad94ed297cc
+    git checkout analyzer
+    git merge --no-ff kupret.inc-1
+    git push origin analyzer
