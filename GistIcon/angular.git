@@ -1,0 +1,3 @@
+git fetch origin
+git checkout -b kupret.inc-1 origin/kupret.inc-1
+git merge analyzer
